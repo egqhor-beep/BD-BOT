@@ -5,7 +5,8 @@ from datetime import datetime
 from openpyxl import Workbook
 
 # ================= НАСТРОЙКИ =================
-TOKEN = "TOKEN"
+import os
+TOKEN = os.getenv("TOKEN")
 
 LOG_CHANNEL_ID = 1463741030963613696
 APPLICATION_CHANNEL_ID = 1464741323356770439
