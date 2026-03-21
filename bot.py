@@ -123,7 +123,7 @@ class ActionModal(discord.ui.Modal):
         await channel.send(embed=create_log_embed(self.action, interaction.user, self.target, rank, reason))
         await interaction.response.send_message("✅ Готово", ephemeral=True)
 
-# ================= SELECT USER VIEW (ИСПРАВЛЕНО) =================
+# ================= SELECT USER VIEW =================
 class SelectUserView(discord.ui.View):
     def __init__(self, action, roles, with_rank=True):
         super().__init__(timeout=60)
@@ -152,37 +152,38 @@ class SelectUserView(discord.ui.View):
 
 # ================= ПАНЕЛЬ =================
 class AdminPanel(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
 
-    @discord.ui.button(label="Принятие", style=discord.ButtonStyle.success, emoji="➕")
+    @discord.ui.button(label="Принятие", style=discord.ButtonStyle.success, emoji="➕", custom_id="accept_btn")
     async def accept(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Принятие", ROLE_ACCEPT), ephemeral=True)
 
-    @discord.ui.button(label="Повышение", style=discord.ButtonStyle.primary, emoji="📈")
+    @discord.ui.button(label="Повышение", style=discord.ButtonStyle.primary, emoji="📈", custom_id="promote_btn")
     async def promote(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Повышение", ROLE_PROMOTE), ephemeral=True)
 
-    @discord.ui.button(label="Понижение", style=discord.ButtonStyle.secondary, emoji="📉")
+    @discord.ui.button(label="Понижение", style=discord.ButtonStyle.secondary, emoji="📉", custom_id="demote_btn")
     async def demote(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Понижение", ROLE_DEMOTE), ephemeral=True)
 
-    @discord.ui.button(label="Увольнение", style=discord.ButtonStyle.danger, emoji="❌")
+    @discord.ui.button(label="Увольнение", style=discord.ButtonStyle.danger, emoji="❌", custom_id="fire_btn")
     async def fire(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Увольнение", ROLE_FIRE, False), ephemeral=True)
 
-    @discord.ui.button(label="Варн", style=discord.ButtonStyle.danger, emoji="⚠️")
+    @discord.ui.button(label="Варн", style=discord.ButtonStyle.danger, emoji="⚠️", custom_id="warn_btn")
     async def warn(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Предупреждение", ROLE_WARN, False), ephemeral=True)
 
-    @discord.ui.button(label="Снять варн", style=discord.ButtonStyle.success, emoji="🧹")
+    @discord.ui.button(label="Снять варн", style=discord.ButtonStyle.success, emoji="🧹", custom_id="unwarn_btn")
     async def unwarn(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Снятие предупреждения", ROLE_UNWARN, False), ephemeral=True)
 
-    @discord.ui.button(label="Чёрный список", style=discord.ButtonStyle.danger, emoji="🚫")
+    @discord.ui.button(label="Чёрный список", style=discord.ButtonStyle.danger, emoji="🚫", custom_id="blacklist_btn")
     async def blacklist(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Черный список", ROLE_BLACKLIST, False), ephemeral=True)
 
-
-# ================= ЗАЯВКИ (БЕЗ ИЗМЕНЕНИЙ, ВСЁ СОХРАНЕНО) =================
+# ================= ЗАЯВКИ =================
 class ApplicationModal(discord.ui.Modal, title="Заявка в семью"):
     nickname = discord.ui.TextInput(label="Ваш ник | Static | Возраст")
     source = discord.ui.TextInput(label="Откуда узнали о нас?")
@@ -209,8 +210,8 @@ class ApplicationModal(discord.ui.Modal, title="Заявка в семью"):
         embed.add_field(name="Пользователь", value=interaction.user.mention, inline=False)
         embed.add_field(name="Данные", value=self.nickname.value, inline=False)
         embed.add_field(name="Откуда узнал о нас", value=self.source.value, inline=False)
-        embed.add_field(name="Скилл", value=self.skill.value, inline=False)
-        embed.add_field(name="Ожидания", value=self.expectations.value, inline=False)
+        embed.add_field(name="Понимание игры и умение стрелять", value=self.skill.value, inline=False)
+        embed.add_field(name="Ожидания от семьи", value=self.expectations.value, inline=False)
 
         await channel.send(embed=embed, view=RecruiterView(interaction.user.id))
         await interaction.response.send_message("✅ Заявка отправлена", ephemeral=True)
@@ -223,21 +224,21 @@ class RecruiterView(discord.ui.View):
     async def interaction_check(self, interaction):
         return has_role(interaction.user, ROLE_RECRUITER)
 
-    @discord.ui.button(label="📥 Взять на рассмотрение")
+    @discord.ui.button(label="📥 Взять на рассмотрение", custom_id="take_btn")
     async def take(self, interaction, button):
         user = await bot.fetch_user(self.user_id)
         try: await user.send(f"📥 Вашу заявку взял {interaction.user}")
         except: pass
         await interaction.response.send_message("Заявка взята", ephemeral=True)
 
-    @discord.ui.button(label="❌ Отклонить", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="❌ Отклонить", style=discord.ButtonStyle.danger, custom_id="reject_btn")
     async def reject(self, interaction, button):
         user = await bot.fetch_user(self.user_id)
         try: await user.send("❌ Ваша заявка отклонена")
         except: pass
         await interaction.response.send_message("Отклонено", ephemeral=True)
 
-    @discord.ui.button(label="✅ Одобрить", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="✅ Одобрить", style=discord.ButtonStyle.success, custom_id="approve_btn")
     async def approve(self, interaction, button):
         guild = interaction.guild
         member = guild.get_member(self.user_id)
@@ -255,7 +256,10 @@ class RecruiterView(discord.ui.View):
         await interaction.response.send_message("Одобрено", ephemeral=True)
 
 class ApplyView(discord.ui.View):
-    @discord.ui.button(label="📩 Отправить заявку в семью")
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="📩 Отправить заявку в семью", custom_id="apply_btn")
     async def apply(self, interaction, button):
         await interaction.response.send_modal(ApplicationModal())
 
@@ -271,45 +275,11 @@ async def panel(interaction):
         return await interaction.response.send_message("Нет доступа", ephemeral=True)
     await interaction.response.send_message("Панель управления:", view=AdminPanel(), ephemeral=True)
 
-@tree.command(name="профиль")
-async def profile(interaction, user: discord.User):
-    cursor.execute("SELECT action, reason, date FROM logs WHERE target_id=?", (user.id,))
-    rows = cursor.fetchall()
-
-    if not rows:
-        return await interaction.response.send_message("Записей нет", ephemeral=True)
-
-    text = "\n".join(f"[{d}] {a} — {r}" for a, r, d in rows[-10:])
-    embed = discord.Embed(title=f"Профиль {user}", description=text)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-@tree.command(name="очистить_профиль")
-async def clear_profile(interaction, user: discord.User):
-    if not has_role(interaction.user, ROLE_CLEAR):
-        return await interaction.response.send_message("Нет прав", ephemeral=True)
-    cursor.execute("DELETE FROM logs WHERE target_id=?", (user.id,))
-    conn.commit()
-    await interaction.response.send_message("Очищено", ephemeral=True)
-
-@tree.command(name="экспорт")
-async def export(interaction):
-    if not has_role(interaction.user, ROLE_EXPORT):
-        return await interaction.response.send_message("Нет прав", ephemeral=True)
-
-    wb = Workbook()
-    ws = wb.active
-    ws.append(["Дата", "Действие", "Автор", "Цель", "Ранг", "Причина"])
-
-    cursor.execute("SELECT * FROM logs")
-    for _, action, au, t, rank, reason, date in cursor.fetchall():
-        ws.append([date, action, au, t, rank, reason])
-
-    wb.save("export.xlsx")
-    await interaction.response.send_message(file=discord.File("export.xlsx"), ephemeral=True)
-
 # ================= READY =================
 @bot.event
 async def on_ready():
+    bot.add_view(AdminPanel())
+    bot.add_view(ApplyView())
     await tree.sync()
     print("Бот запущен")
 
