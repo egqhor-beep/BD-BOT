@@ -258,10 +258,27 @@ async def panel(interaction):
         return await interaction.response.send_message("Нет доступа", ephemeral=True)
     await interaction.response.send_message("Панель:", view=AdminPanel(), ephemeral=True)
 
+@tree.command(name="кнопка_заявки")
+async def send_button(interaction: discord.Interaction):
+    await interaction.channel.send(
+        "Нажмите кнопку для подачи заявки:",
+        view=ApplyView()
+    )
+    await interaction.response.send_message("Кнопка отправлена", ephemeral=True)
+
+class ApplyView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="📩 Отправить заявку", custom_id="apply_btn")
+    async def apply(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ApplicationModal())
+
 # ================= READY =================
 @bot.event
 async def on_ready():
     bot.add_view(AdminPanel())
+    bot.add_view(ApplyView())
     await tree.sync()
     print("Бот запущен")
 
