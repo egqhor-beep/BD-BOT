@@ -3,8 +3,9 @@ from discord import app_commands
 import sqlite3
 from datetime import datetime
 from openpyxl import Workbook
-import os
+
 # ================= НАСТРОЙКИ =================
+import os
 TOKEN = os.getenv("TOKEN")
 
 LOG_CHANNEL_ID = 1463741030963613696
@@ -182,6 +183,28 @@ class AdminPanel(discord.ui.View):
     async def blacklist(self, i, b):
         await i.response.send_message("Выберите пользователя:", view=SelectUserView("Черный список", ROLE_BLACKLIST, False), ephemeral=True)
 
+    # 🔥 ДОБАВЛЕНО
+    @discord.ui.button(label="ЧС без Discord", style=discord.ButtonStyle.secondary, emoji="📄", custom_id="blacklist_no_discord")
+    async def blacklist_no_discord(self, interaction, button):
+        await interaction.response.send_modal(BlacklistModal())
+
+# ================= ЧС БЕЗ DISCORD =================
+class BlacklistModal(discord.ui.Modal, title="ЧС без Discord"):
+    static_id = discord.ui.TextInput(label="Static ID")
+    nicknames = discord.ui.TextInput(label="Nickname(s)")
+    reason = discord.ui.TextInput(label="Причина", style=discord.TextStyle.paragraph)
+
+    async def on_submit(self, interaction):
+        embed = discord.Embed(title="🚫 Чёрный список (без Discord)", color=discord.Color.red())
+        embed.add_field(name="Static ID", value=self.static_id.value, inline=False)
+        embed.add_field(name="Nickname(s)", value=self.nicknames.value, inline=False)
+        embed.add_field(name="Причина", value=self.reason.value, inline=False)
+        embed.add_field(name="Внёс", value=interaction.user.mention, inline=False)
+        embed.set_footer(text=datetime.now().strftime("%d.%m.%Y %H:%M"))
+
+        await bot.get_channel(LOG_CHANNEL_ID).send(embed=embed)
+        await interaction.response.send_message("Добавлено в ЧС", ephemeral=True)
+
 # ================= ЗАЯВКИ =================
 class ApplicationModal(discord.ui.Modal, title="Заявка в семью"):
     nickname = discord.ui.TextInput(label="Ваш ник | Static | Возраст")
@@ -209,8 +232,8 @@ class ApplicationModal(discord.ui.Modal, title="Заявка в семью"):
         embed.add_field(name="Пользователь", value=interaction.user.mention, inline=False)
         embed.add_field(name="Данные", value=self.nickname.value, inline=False)
         embed.add_field(name="Откуда узнал о нас", value=self.source.value, inline=False)
-        embed.add_field(name="Скилл", value=self.skill.value, inline=False)
-        embed.add_field(name="Ожидания", value=self.expectations.value, inline=False)
+        embed.add_field(name="Скиллы", value=self.skill.value, inline=False)
+        embed.add_field(name="Ожидания от семьи", value=self.expectations.value, inline=False)
 
         await channel.send(embed=embed, view=RecruiterView(interaction.user.id))
         await interaction.response.send_message("✅ Заявка отправлена", ephemeral=True)
@@ -225,35 +248,23 @@ class RecruiterView(discord.ui.View):
 
     @discord.ui.button(label="📥 Взять на рассмотрение", custom_id="take_btn")
     async def take(self, interaction, button):
-        user = await bot.fetch_user(self.user_id)
-        try: await user.send(f"📥 Вашу заявку взял {interaction.user}")
-        except: pass
         await interaction.response.send_message("Заявка взята", ephemeral=True)
 
     @discord.ui.button(label="❌ Отклонить", style=discord.ButtonStyle.danger, custom_id="reject_btn")
     async def reject(self, interaction, button):
-        user = await bot.fetch_user(self.user_id)
-        try: await user.send("❌ Ваша заявка отклонена")
-        except: pass
+        embed = interaction.message.embeds[0]
+        embed.add_field(name="❌ Отклонил", value=interaction.user.mention, inline=False)
+        await interaction.message.edit(embed=embed, view=None)
         await interaction.response.send_message("Отклонено", ephemeral=True)
 
     @discord.ui.button(label="✅ Одобрить", style=discord.ButtonStyle.success, custom_id="approve_btn")
     async def approve(self, interaction, button):
-        guild = interaction.guild
-        member = guild.get_member(self.user_id)
-
-        guest = guild.get_role(ROLE_GUEST)
-        family = guild.get_role(ROLE_MEMBER)
-
-        if guest in member.roles:
-            await member.remove_roles(guest)
-        await member.add_roles(family)
-
-        try: await member.send("✅ Ваша заявка одобрена! Добро пожаловать.")
-        except: pass
-
+        embed = interaction.message.embeds[0]
+        embed.add_field(name="✅ Одобрил", value=interaction.user.mention, inline=False)
+        await interaction.message.edit(embed=embed, view=None)
         await interaction.response.send_message("Одобрено", ephemeral=True)
 
+# ================= APPLY =================
 class ApplyView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
