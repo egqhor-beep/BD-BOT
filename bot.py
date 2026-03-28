@@ -333,8 +333,8 @@ class MPView(discord.ui.View):
                         pass
 
         # 🔄 обновление embed
-        try:
-            await message.edit(embed=self.build_embed(), view=self)
+            try:
+                await message.edit(embed=self.build_embed(), view=self)
         except:
             break
 
