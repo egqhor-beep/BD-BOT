@@ -460,6 +460,10 @@ async def clear_logs(interaction: discord.Interaction):
 
     await interaction.response.send_message("✅ Логи очищены", ephemeral=True)
 
+@tree.command(name="test123", guild=discord.Object(id=ТВОЙ_ID))
+async def test(interaction):
+    await interaction.response.send_message("работает")
+    
 # ================= READY =================
 @bot.event
 async def on_ready():
