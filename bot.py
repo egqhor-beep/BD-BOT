@@ -399,7 +399,7 @@ class MPView(discord.ui.View):
         await interaction.response.send_message("МП завершено", ephemeral=True)
 
 # ================= КОМАНДА =================
-@tree.command(name="создать_мп")
+@tree.command(name="создать_мп", guild=discord.Object(id=1458525105457070286))
 @app_commands.describe(time="Время начала (HH:MM)")
 async def create_mp(interaction: discord.Interaction, time: str):
     if not has_role(interaction.user, ROLE_MP_ADMIN):
@@ -433,7 +433,7 @@ async def panel(interaction):
 
 # === ВСТАВЬ ЭТО ПОСЛЕ ИНИЦИАЛИЗАЦИИ БАЗЫ ===
 
-@tree.command(name="экспорт")
+@tree.command(name="экспорт", guild=discord.Object(id=1458525105457070286))
 async def export_logs(interaction: discord.Interaction):
     if not has_role(interaction.user, ROLE_EXPORT):
         return await interaction.response.send_message("❌ Нет прав", ephemeral=True)
@@ -450,7 +450,7 @@ async def export_logs(interaction: discord.Interaction):
 
     await interaction.response.send_message(file=discord.File(file_name))
 
-@tree.command(name="очистить_логи")
+@tree.command(name="очистить_логи", guild=discord.Object(id=1458525105457070286))
 async def clear_logs(interaction: discord.Interaction):
     if not has_role(interaction.user, ROLE_CLEAR):
         return await interaction.response.send_message("❌ Нет прав", ephemeral=True)
