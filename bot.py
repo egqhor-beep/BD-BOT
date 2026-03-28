@@ -433,7 +433,7 @@ async def panel(interaction):
 
 # === ВСТАВЬ ЭТО ПОСЛЕ ИНИЦИАЛИЗАЦИИ БАЗЫ ===
 
-@tree.command(name="Экспорт")
+@tree.command(name="экспорт")
 async def export_logs(interaction: discord.Interaction):
     if not has_role(interaction.user, ROLE_EXPORT):
         return await interaction.response.send_message("❌ Нет прав", ephemeral=True)
@@ -450,7 +450,7 @@ async def export_logs(interaction: discord.Interaction):
 
     await interaction.response.send_message(file=discord.File(file_name))
 
-@tree.command(name="Очистить_логи")
+@tree.command(name="очистить_логи")
 async def clear_logs(interaction: discord.Interaction):
     if not has_role(interaction.user, ROLE_CLEAR):
         return await interaction.response.send_message("❌ Нет прав", ephemeral=True)
