@@ -291,7 +291,10 @@ class MPView(discord.ui.View):
         self.notified = False
 
     def build_embed(self):
-        embed = discord.Embed(title=f"МП — начало в {self.start_time.strftime('%H:%M')}", color=discord.Color.dark_gray())
+        embed = discord.Embed(
+            title=f"МП — начало в {self.start_time.strftime('%H:%M')}",
+            color=discord.Color.dark_gray()
+        )
 
         now = datetime.now()
         diff = self.start_time - now
@@ -305,14 +308,12 @@ class MPView(discord.ui.View):
         if not self.participants:
             embed.add_field(name="Участники", value="Список пуст", inline=False)
         else:
-            text = ""
-            for i, user in enumerate(self.participants, start=1):
-                text += f"{i}. {user.mention}\n"
+            text = "\n".join([f"{i+1}. {u.mention}" for i, u in enumerate(self.participants)])
             embed.add_field(name="Участники", value=text, inline=False)
 
         embed.set_footer(text=f"Всего: {len(self.participants)}")
         return embed
-        
+
     async def auto_update(self, message):
         while True:
             await asyncio.sleep(60)
@@ -320,7 +321,7 @@ class MPView(discord.ui.View):
             now = datetime.now()
             diff = (self.start_time - now).total_seconds()
 
-            # 🔔 ЛС за 10 минут
+            # 🔔 уведомление за 10 минут
             if diff <= 600 and not self.notified:
                 self.notified = True
 
@@ -332,16 +333,16 @@ class MPView(discord.ui.View):
                     except:
                         pass
 
-        # 🔄 обновление embed
+            # 🔄 обновление embed
             try:
                 await message.edit(embed=self.build_embed(), view=self)
             except:
                 break
 
-        # ⛔ остановка после начала
-        if diff <= 0:
-            break
-            
+            # ⛔ остановка после старта
+            if diff <= 0:
+                break
+
     @discord.ui.button(label="Вписаться на капт", style=discord.ButtonStyle.success)
     async def join(self, interaction, button):
         if interaction.user not in self.participants:
@@ -357,9 +358,11 @@ class MPView(discord.ui.View):
 
             diff = (self.start_time - datetime.now()).total_seconds()
 
-            if diff <= 300:  # 5 минут
+            if diff <= 300:
                 log_channel = bot.get_channel(MP_LOG_CHANNEL_ID)
-                await log_channel.send(f"⚠️ {interaction.user.mention} вышел менее чем за 5 минут до МП")
+                await log_channel.send(
+                    f"⚠️ {interaction.user.mention} вышел менее чем за 5 минут до МП"
+                )
 
         await interaction.message.edit(embed=self.build_embed(), view=self)
         await interaction.response.defer()
@@ -372,7 +375,7 @@ class MPView(discord.ui.View):
         mentions = " ".join([u.mention for u in self.participants])
 
         await interaction.channel.send(
-            f"📢 МП в {self.start_time.strftime('%H:%M')}! Всем зайти в войс!\n{mentions}"
+            f"📢 МП в {self.start_time.strftime('%H:%M')}!\n{mentions}"
         )
         await interaction.response.defer()
 
@@ -385,8 +388,10 @@ class MPView(discord.ui.View):
 
         text = "\n".join([f"{i+1}. {u}" for i, u in enumerate(self.participants)])
 
-        embed = discord.Embed(title=f"📊 МП завершено ({self.start_time.strftime('%H:%M')})")
-        embed.description = text if text else "Нет участников"
+        embed = discord.Embed(
+            title=f"📊 МП завершено ({self.start_time.strftime('%H:%M')})",
+            description=text if text else "Нет участников"
+        )
 
         await log_channel.send(embed=embed)
 
