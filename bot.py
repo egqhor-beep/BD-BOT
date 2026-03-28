@@ -203,7 +203,7 @@ class BlacklistModal(discord.ui.Modal, title="ЧС без Discord"):
         embed.add_field(name="Nickname(s)", value=self.nicknames.value, inline=False)
         embed.add_field(name="Причина", value=self.reason.value, inline=False)
         embed.add_field(name="Внёс", value=interaction.user.mention, inline=False)
-        embed.set_footer(text=datetime.now().strftime("%d.%m.%Y %H:%M"))
+        embed.set_footer(text=datetime.now(MSK).strftime("%d.%m.%Y %H:%M"))
 
         await bot.get_channel(LOG_CHANNEL_ID).send(embed=embed)
         await interaction.response.send_message("Добавлено в ЧС", ephemeral=True)
@@ -296,7 +296,7 @@ class MPView(discord.ui.View):
             color=discord.Color.dark_gray()
         )
 
-        now = datetime.now()
+        now = datetime.now(MSK)
         diff = self.start_time - now
 
         if diff.total_seconds() > 0:
@@ -318,7 +318,7 @@ class MPView(discord.ui.View):
         while True:
             await asyncio.sleep(60)
 
-            now = datetime.now()
+            now = datetime.now(MSK)
             diff = (self.start_time - now).total_seconds()
 
             # 🔔 уведомление за 10 минут
@@ -356,7 +356,7 @@ class MPView(discord.ui.View):
         if interaction.user in self.participants:
             self.participants.remove(interaction.user)
 
-            diff = (self.start_time - datetime.now()).total_seconds()
+            diff = (self.start_time - datetime.now(MSK)).total_seconds()
 
             if diff <= 300:
                 log_channel = bot.get_channel(MP_LOG_CHANNEL_ID)
@@ -407,11 +407,11 @@ async def create_mp(interaction: discord.Interaction, time: str):
 
     try:
         hour, minute = map(int, time.split(":"))
-        now = datetime.now()
+        now = datetime.now(MSK)
         start_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
         if start_time < now:
-            start_time = start_time.replace(day=now.day + 1)
+            start_time = += timedelta(days=1) 
 
     except:
         return await interaction.response.send_message("❌ Неверный формат времени (пример: 17:00)", ephemeral=True)
