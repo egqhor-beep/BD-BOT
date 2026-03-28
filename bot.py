@@ -460,7 +460,7 @@ async def clear_logs(interaction: discord.Interaction):
 
     await interaction.response.send_message("✅ Логи очищены", ephemeral=True)
 
-@tree.command(name="test123", guild=discord.Object(id=1458525105457070286))
+@tree.command(name="test", guild=discord.Object(id=1458525105457070286))
 async def test(interaction):
     await interaction.response.send_message("работает")
     
@@ -472,9 +472,10 @@ async def on_ready():
     bot.add_view(MPView(None, datetime.now()))
 
     guild = discord.Object(id=1458525105457070286)
+
     
     await tree.sync(guild=guild)
-    
+    await tree.sync()
     print("Бот запущен")
 
 bot.run(TOKEN)
