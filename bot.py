@@ -466,7 +466,11 @@ async def on_ready():
     bot.add_view(AdminPanel())
     bot.add_view(ApplyView())
     bot.add_view(MPView(None, datetime.now()))
-    await tree.sync()
+
+    guild = discord.Object(id=1458525105457070286)
+    
+    await tree.sync(guild=guild)
+    
     print("Бот запущен")
 
 bot.run(TOKEN)
