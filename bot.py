@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import asyncio
 from openpyxl import Workbook
 
+MSK = timezone(timedelta(hours=3))
 # ================= НАСТРОЙКИ =================
 import os
 TOKEN = os.getenv("TOKEN")
@@ -411,7 +412,7 @@ async def create_mp(interaction: discord.Interaction, time: str):
         start_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
         if start_time < now:
-            start_time = += timedelta(days=1) 
+            start_time += timedelta(days=1) 
 
     except:
         return await interaction.response.send_message("❌ Неверный формат времени (пример: 17:00)", ephemeral=True)
