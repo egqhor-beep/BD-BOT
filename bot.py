@@ -1,7 +1,8 @@
 import discord
 from discord import app_commands
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
+import asyncio
 from openpyxl import Workbook
 
 # ================= НАСТРОЙКИ =================
@@ -10,6 +11,7 @@ TOKEN = os.getenv("TOKEN")
 
 LOG_CHANNEL_ID = 1463741030963613696
 APPLICATION_CHANNEL_ID = 1464741323356770439
+MP_LOG_CHANNEL_ID = 1463741030963613696
 
 ROLE_GUEST = 1459109315221786766
 ROLE_MEMBER = 1459102595279749231
@@ -25,7 +27,7 @@ ROLE_BLACKLIST = [1461038020181626913, 1462540671570284739, 1464168144389017717]
 ROLE_EXPORT = [1464168144389017717]
 ROLE_CLEAR = [1464168144389017717]
 ROLE_RECRUITER = [1463266266554040382, 1459105402338803926, 1461038020181626913, 1462540671570284739, 1464168144389017717]
-
+ROLE_MP_ADMIN = [1462540671570284739, 1464168144389017717, 1487147182535610449]
 # ============================================
 
 intents = discord.Intents.default()
@@ -278,6 +280,144 @@ async def send_button(interaction):
     await interaction.channel.send("Нажмите кнопку для подачи заявки:", view=ApplyView())
     await interaction.response.send_message("Кнопка отправлена", ephemeral=True)
 
+# ================= МП СИСТЕМА =================
+class MPView(discord.ui.View):
+    def __init__(self, author, start_time):
+        super().__init__(timeout=None)
+        self.participants = []
+        self.author = author
+        self.start_time = start_time
+        self.notified = False
+
+    def build_embed(self):
+        embed = discord.Embed(title=f"МП — начало в {self.start_time.strftime('%H:%M')}", color=discord.Color.dark_gray())
+
+        now = datetime.now()
+        diff = self.start_time - now
+
+        if diff.total_seconds() > 0:
+            minutes = int(diff.total_seconds() // 60)
+            embed.add_field(name="До начала", value=f"{minutes} мин.", inline=False)
+        else:
+            embed.add_field(name="Статус", value="Уже началось", inline=False)
+
+        if not self.participants:
+            embed.add_field(name="Участники", value="Список пуст", inline=False)
+        else:
+            text = ""
+            for i, user in enumerate(self.participants, start=1):
+                text += f"{i}. {user.mention}\n"
+            embed.add_field(name="Участники", value=text, inline=False)
+
+        embed.set_footer(text=f"Всего: {len(self.participants)}")
+        return embed
+        
+    async def auto_update(self, message):
+        while True:
+            await asyncio.sleep(60)
+
+        now = datetime.now()
+        diff = (self.start_time - now).total_seconds()
+
+        # 🔔 ЛС за 10 минут
+        if diff <= 600 and not self.notified:
+            self.notified = True
+
+            for user in self.participants:
+                try:
+                    await user.send(
+                        f"⏰ МП через 10 минут!\nВремя: {self.start_time.strftime('%H:%M')}"
+                    )
+                except:
+                    pass
+
+        # 🔄 обновление embed
+        try:
+            await message.edit(embed=self.build_embed(), view=self)
+        except:
+            break
+
+        # ⛔ остановка после начала
+        if diff <= 0:
+            break
+            
+    @discord.ui.button(label="Вписаться на капт", style=discord.ButtonStyle.success)
+    async def join(self, interaction, button):
+        if interaction.user not in self.participants:
+            self.participants.append(interaction.user)
+
+        await interaction.message.edit(embed=self.build_embed(), view=self)
+        await interaction.response.defer()
+
+    @discord.ui.button(label="Выписаться из списка", style=discord.ButtonStyle.danger)
+    async def leave(self, interaction, button):
+        if interaction.user in self.participants:
+            self.participants.remove(interaction.user)
+
+            diff = (self.start_time - datetime.now()).total_seconds()
+
+            if diff <= 300:  # 5 минут
+                log_channel = bot.get_channel(MP_LOG_CHANNEL_ID)
+                await log_channel.send(f"⚠️ {interaction.user.mention} вышел менее чем за 5 минут до МП")
+
+        await interaction.message.edit(embed=self.build_embed(), view=self)
+        await interaction.response.defer()
+
+    @discord.ui.button(label="Проверка на войс", style=discord.ButtonStyle.primary)
+    async def voice_check(self, interaction, button):
+        if not has_role(interaction.user, ROLE_MP_ADMIN):
+            return await interaction.response.send_message("Нет прав", ephemeral=True)
+
+        mentions = " ".join([u.mention for u in self.participants])
+
+        await interaction.channel.send(
+            f"📢 МП в {self.start_time.strftime('%H:%M')}! Всем зайти в войс!\n{mentions}"
+        )
+        await interaction.response.defer()
+
+    @discord.ui.button(label="Завершить МП", style=discord.ButtonStyle.secondary)
+    async def finish(self, interaction, button):
+        if not has_role(interaction.user, ROLE_MP_ADMIN):
+            return await interaction.response.send_message("Нет прав", ephemeral=True)
+
+        log_channel = bot.get_channel(MP_LOG_CHANNEL_ID)
+
+        text = "\n".join([f"{i+1}. {u}" for i, u in enumerate(self.participants)])
+
+        embed = discord.Embed(title=f"📊 МП завершено ({self.start_time.strftime('%H:%M')})")
+        embed.description = text if text else "Нет участников"
+
+        await log_channel.send(embed=embed)
+
+        await interaction.message.delete()
+        await interaction.response.send_message("МП завершено", ephemeral=True)
+
+# ================= КОМАНДА =================
+@tree.command(name="создать_мп")
+@app_commands.describe(time="Время начала (HH:MM)")
+async def create_mp(interaction: discord.Interaction, time: str):
+    if not has_role(interaction.user, ROLE_MP_ADMIN):
+        return await interaction.response.send_message("❌ Нет прав", ephemeral=True)
+
+    try:
+        hour, minute = map(int, time.split(":"))
+        now = datetime.now()
+        start_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+        if start_time < now:
+            start_time = start_time.replace(day=now.day + 1)
+
+    except:
+        return await interaction.response.send_message("❌ Неверный формат времени (пример: 17:00)", ephemeral=True)
+
+    view = MPView(interaction.user, start_time)
+    embed = view.build_embed()
+
+    msg = await interaction.channel.send(embed=embed, view=view)
+    bot.loop.create_task(view.auto_update(msg))
+    
+    await interaction.response.send_message("✅ МП создано", ephemeral=True)
+    
 # ================= КОМАНДЫ =================
 @tree.command(name="панель")
 async def panel(interaction):
@@ -285,11 +425,41 @@ async def panel(interaction):
         return await interaction.response.send_message("Нет доступа", ephemeral=True)
     await interaction.response.send_message("Панель управления:", view=AdminPanel(), ephemeral=True)
 
+# === ВСТАВЬ ЭТО ПОСЛЕ ИНИЦИАЛИЗАЦИИ БАЗЫ ===
+
+@tree.command(name="Экспорт")
+async def export_logs(interaction: discord.Interaction):
+    if not has_role(interaction.user, ROLE_EXPORT):
+        return await interaction.response.send_message("❌ Нет прав", ephemeral=True)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["Action", "Author ID", "Target ID", "Rank", "Reason", "Date"])
+
+    for row in cursor.execute("SELECT action, author_id, target_id, rank_change, reason, date FROM logs"):
+        ws.append(row)
+
+    file_name = "logs.xlsx"
+    wb.save(file_name)
+
+    await interaction.response.send_message(file=discord.File(file_name))
+
+@tree.command(name="Очистить_логи")
+async def clear_logs(interaction: discord.Interaction):
+    if not has_role(interaction.user, ROLE_CLEAR):
+        return await interaction.response.send_message("❌ Нет прав", ephemeral=True)
+
+    cursor.execute("DELETE FROM logs")
+    conn.commit()
+
+    await interaction.response.send_message("✅ Логи очищены", ephemeral=True)
+
 # ================= READY =================
 @bot.event
 async def on_ready():
     bot.add_view(AdminPanel())
     bot.add_view(ApplyView())
+    bot.add_view(MPView(None, datetime.now()))
     await tree.sync()
     print("Бот запущен")
 
