@@ -8,6 +8,7 @@ from openpyxl import Workbook
 # ================= НАСТРОЙКИ =================
 import os
 TOKEN = os.getenv("TOKEN")
+print("TOKEN:", TOKEN) 
 
 LOG_CHANNEL_ID = 1463741030963613696
 APPLICATION_CHANNEL_ID = 1464741323356770439
@@ -316,20 +317,20 @@ class MPView(discord.ui.View):
         while True:
             await asyncio.sleep(60)
 
-        now = datetime.now()
-        diff = (self.start_time - now).total_seconds()
+            now = datetime.now()
+            diff = (self.start_time - now).total_seconds()
 
-        # 🔔 ЛС за 10 минут
-        if diff <= 600 and not self.notified:
-            self.notified = True
+            # 🔔 ЛС за 10 минут
+            if diff <= 600 and not self.notified:
+                self.notified = True
 
-            for user in self.participants:
-                try:
-                    await user.send(
-                        f"⏰ МП через 10 минут!\nВремя: {self.start_time.strftime('%H:%M')}"
-                    )
-                except:
-                    pass
+                for user in self.participants:
+                    try:
+                        await user.send(
+                            f"⏰ МП через 10 минут!\nВремя: {self.start_time.strftime('%H:%M')}"
+                        )
+                    except:
+                        pass
 
         # 🔄 обновление embed
         try:
